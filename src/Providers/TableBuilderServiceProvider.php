@@ -10,7 +10,7 @@ class TableBuilderServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('table-builder', function ($app) {
-            return new TableBuilder($app['db']->query());
+            return new TableBuilder();
         });
     }
 

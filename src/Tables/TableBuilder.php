@@ -83,14 +83,18 @@ class TableBuilder
      */
     protected array $perPageOptions = [10, 25, 50, 100];
 
+    public function __construct() {}
+
     /**
      * Create a new TableBuilder instance.
      * 
      * @param Builder $query The base query builder instance
      */
-    public function __construct(Builder $query)
+    public static function make(Builder $query): self
     {
-        $this->query = $query;
+        $instance = new self();
+        $instance->query = $query;
+        return $instance;
     }
 
     /**
