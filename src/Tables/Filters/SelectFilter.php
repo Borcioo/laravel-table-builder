@@ -34,7 +34,14 @@ class SelectFilter extends BaseFilter
         string $label,
         array $options
     ) {
-        parent::__construct($key, $label, 'select', $options);
+        $formattedOptions = array_map(function ($value, $label) {
+            return [
+                'value' => $value,
+                'label' => $label
+            ];
+        }, array_keys($options), array_values($options));
+
+        parent::__construct($key, $label, 'select', array_values($formattedOptions));
     }
 
     /**
