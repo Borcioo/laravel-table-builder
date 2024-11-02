@@ -1,189 +1,179 @@
 # Laravel Table Builder
 
-Laravel Table Builder to pakiet umożliwiający łatwe tworzenie tabel z wyszukiwaniem, sortowaniem, paginacją i filtrami dla aplikacji Laravel 11, współpracujący z Inertia i React. Poniższa dokumentacja przedstawia podstawowe komponenty, przykłady użycia oraz dostępne opcje konfiguracji.
+A package for Laravel 11 that provides advanced data tables with search, sort, pagination, and filters, designed to work with Inertia.js and React.
 
-## Spis Treści
+## Installation
 
-- [Użycie](#użycie)
-  - [Podstawowe użycie](#podstawowe-użycie)
-  - [Tabela z filtrami](#z-filtrami)
-  - [Tabela z akcjami](#z-akcjami)
-- [Dostępne Komponenty](#dostępne-komponenty)
-  - [Kolumny](#kolumny)
-  - [Filtry](#filtry)
-  - [Akcje](#akcje)
-- [Przykłady Implementacji](#przykłady-implementacji)
-- [Paginacja](#paginacja)
-- [Dostosowywanie Wyglądu](#dostosowywanie-wyglądu)
-  - [Kolumna Badge](#kolumna-badge)
-  - [Przyciski Akcji](#przyciski-akcji)
-- [Testowanie i Formatowanie Kodu](#testowanie-i-formatowanie-kodu)
-- [Wymagania](#wymagania)
-- [Licencja](#licencja)
+Since this package is not published on Packagist yet, you need to install it from GitHub.
 
----
+1. Add the repository to your `composer.json`:
 
-## Struktura Projektu
+```json
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/borek/laravel-table-builder"
+    }
+]
+```
 
-Pakiet Laravel Table Builder składa się z następujących głównych komponentów:
+2. Install the package using Composer:
 
-## Użycie
+```bash
+ composer require borek/laravel-table-builder:dev-main
+```
 
-### Podstawowe użycie
+### Setup
+
+1. Publish the configuration file (optional):
+
+```bash
+php artisan vendor:publish --tag=table-builder-config
+```
+
+2. Install required dependencies:
+
+```bash
+php artisan table-builder:install-dependencies
+```
+
+3. Install React components:
+
+```bash
+php artisan table-builder:install-components
+```
+
+You can also specify a custom path for components:
+
+```bash
+php artisan table-builder:install-components --path=Custom/Path
+```
+
+## Requirements
+
+- PHP ^8.2
+- Laravel ^11.0
+- Inertia.js with React
+- shadcn/ui components
+
+## Basic Usage
+
+### Backend (Controller)
 
 ```php
 use Borek\LaravelTableBuilder\Facades\TableBuilder;
 
-TableBuilder::make(User::query())
-    ->textColumn('name', 'Nazwa')
-    ->dateColumn('created_at', 'Data utworzenia')
-    ->searchable(['name'])
-    ->sortable(['created_at']);
-```
+    public function index(Request $request)
+    {
+        $query = User::with('roles');
+        $table = TableBuilder::make($query);
 
-### Z filtrami
+        $table
+            ->addColumn((new TextColumn('name', 'Name'))->sortable())
+            ->addColumn((new TextColumn('email', 'Email'))->sortable())
+            ->addColumn((new BadgeColumn('roles.name', 'Role'))->sortable()->colors([
+                'admin' => 'rgba(239, 68, 68, 1)',
+                'agent' => 'rgba(234, 179, 8, 1)',
+                'user' => 'rgba(34, 197, 94, 1)',
+            ])->backgrounds([
+                'admin' => 'rgba(239, 68, 68, 0.1)',
+                'agent' => 'rgba(234, 179, 8, 0.1)',
+                'user' => 'rgba(34, 197, 94, 0.1)',
+            ]))
+            ->addColumn((new DateColumn('created_at', 'Data utworzenia'))->sortable())
+            ->addFilter(new SelectFilter('roles.name', 'Role', [
+                'admin' => 'Administrator',
+                'user' => 'User',
+            ]))
+            ->addAction(new ButtonAction('edit', '', [
+                'icon' => 'edit',
+                'variant' => 'primary',
+                'route' => 'admin.users.edit',
+                'routeParams' => ['user' => ':id'],
+                'type' => 'link',
+            ]))
+            ->searchable(['name', 'email']);
 
-```php
-TableBuilder::make(User::query())
-    ->textColumn('name', 'Nazwa')
-    ->selectFilter('status', 'Status', [
-        'active' => 'Aktywny',
-        'inactive' => 'Nieaktywny'
-    ])
-    ->ternaryFilter('verified', 'Zweryfikowany');
-```
 
-### Z akcjami
+        $data = $table->getData($request->all());
 
-```php
-TableBuilder::make(User::query())
-    ->textColumn('name', 'Nazwa')
-    ->buttonAction('edit', 'Edytuj', [
-        'route' => 'users.edit',
-        'method' => 'get'
-    ]);
-```
-
-## Dostępne Komponenty
-
-### Kolumny
-
-- `textColumn()`
-- `dateColumn()`
-- `iconColumn()`
-- `imageColumn()`
-- `badgeColumn()`
-- `booleanColumn()`
-
-### Filtry
-
-- `textFilter()`
-- `selectFilter()`
-- `numberFilter()`
-- `ternaryFilter()`
-- `booleanFilter()`
-
-### Akcje
-
-- `buttonAction()`
-
-## Przykłady Implementacji
-
-### Podstawowa tabela z wyszukiwaniem i sortowaniem
-
-```php
-TableBuilder::make(User::query())
-    ->textColumn('name', 'Nazwa')
-    ->textColumn('email', 'Email')
-    ->dateColumn('created_at', 'Data utworzenia')
-    ->searchable(['name', 'email'])
-    ->sortable(['name', 'created_at']);
-```
-
-### Tabela z kolumną badge i własnymi kolorami
-
-```php
-TableBuilder::make(User::query())
-    ->badgeColumn('status', 'Status')
-        ->colors([
-            'active' => 'green',
-            'pending' => 'yellow',
-            'blocked' => 'red'
+        return Inertia::render('Users/Index', [
+            'tableSchema' => $table->getSchema(),
+            'tableData' => [
+                'data' => UserResource::collection($data['data'])->jsonSerialize(),
+                'meta' => $data['meta']
+            ],
+            'query' => $request->only([
+                'search',
+                'filters',
+                'sortColumn',
+                'sortDirection',
+                'perPage'
+            ]),
         ]);
+    }
 ```
 
-### Tabela z akcjami i potwierdzeniem
+### Frontend (React)
+
+```tsx
+import {
+  DataTable,
+  DataTableData,
+  DataTableQuery,
+} from "@/Components/TableBuilder";
+import { TableConfig } from "@/Components/TableBuilder/types/table-builder";
+import { PageProps } from "@/types";
+
+interface UsersPageProps extends PageProps {
+  tableSchema: TableConfig;
+  tableData: DataTableData<any>;
+  query: DataTableQuery;
+}
+
+export default function Index({
+  tableSchema,
+  tableData,
+  query,
+}: UsersPageProps) {
+  return (
+    <div className="py-12">
+      <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <DataTable schema={tableSchema} data={tableData} query={query} />
+      </div>
+    </div>
+  );
+}
+```
+
+## Features
+
+- 📊 Sortable columns
+- 🔍 Global search
+- 🎯 Column filters
+- 📱 Responsive design
+- 🎨 Customizable UI (based on shadcn/ui)
+- 📄 Server-side pagination
+
+## Configuration
+
+After publishing the config file, you can customize the default paths in `config/table-builder.php`:
 
 ```php
-TableBuilder::make(User::query())
-    ->textColumn('name', 'Nazwa')
-    ->buttonAction('edit', 'Edytuj', [
-        'route' => 'users.edit',
-        'method' => 'get',
-        'icon' => 'edit',
-        'variant' => 'primary'
-    ])
-    ->buttonAction('delete', 'Usuń', [
-        'route' => 'users.destroy',
-        'method' => 'delete',
-        'icon' => 'trash',
-        'variant' => 'danger',
-        'confirm' => true,
-        'confirmText' => 'Czy na pewno chcesz usunąć tego użytkownika?'
-    ]);
+return [
+    'components_path' => 'Components/TableBuilder', // Default path for components
+    'default_path' => 'Components/TableBuilder'     // Fallback path if config is not published
+];
 ```
 
-## Paginacja
+## Available Commands
 
-```php
-TableBuilder::make(User::query())
-    ->textColumn('name', 'Nazwa')
-    ->defaultPerPage(25)
-    ->perPageOptions([10, 25, 50, 100]);
-```
+| Command                                               | Description                                             |
+| ----------------------------------------------------- | ------------------------------------------------------- |
+| `table-builder:install-dependencies`                  | Installs required npm packages and shadcn/ui components |
+| `table-builder:install-components`                    | Copies React components to your project                 |
+| `table-builder:install-components --path=Custom/Path` | Installs components to a custom path                    |
 
-## Dostosowywanie Wyglądu
+## License
 
-### Kolumna Badge
-
-```php
-->badgeColumn('status', 'Status')
-    ->colors([
-        'active' => 'bg-emerald-100 text-emerald-800',
-        'pending' => 'bg-amber-100 text-amber-800',
-        'blocked' => 'bg-rose-100 text-rose-800'
-    ]);
-```
-
-### Przyciski Akcji
-
-```php
-->buttonAction('edit', 'Edytuj', [
-    'variant' => 'primary',
-    'size' => 'sm',
-    'icon' => 'edit'
-]);
-```
-
-## Testowanie i Formatowanie Kodu
-
-Uruchom testy:
-
-```bash
-composer test
-```
-
-Sformatuj kod:
-
-```bash
-composer format
-```
-
-## Wymagania
-
-- PHP ^8.2
-- Laravel ^11.0
-
-## Licencja
-
-Pakiet jest objęty licencją [GNU General Public License v3.0 (GPL-3.0)](https://www.gnu.org/licenses/gpl-3.0.html).
+This package is open-sourced software licensed under the [GNU General Public License v3.0 (GPL-3.0)](https://www.gnu.org/licenses/gpl-3.0.html).
