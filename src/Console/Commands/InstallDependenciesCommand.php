@@ -12,7 +12,7 @@ class InstallDependenciesCommand extends Command
     private $dependencies = [
         'lucide-react' => '^0.453.0',
         'lodash' => '^4.17.21',
-        '@tanstack/react-table' => '^4.17.12',
+        '@tanstack/react-table' => '^8.20.5',
     ];
 
     private $devDependencies = [
