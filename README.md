@@ -12,7 +12,7 @@ Since this package is not published on Packagist yet, you need to install it fro
 "repositories": [
     {
         "type": "vcs",
-        "url": "https://github.com/borek/laravel-table-builder"
+        "url": "https://github.com/Borcioo/laravel-table-builder"
     }
 ]
 ```
