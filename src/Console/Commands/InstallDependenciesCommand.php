@@ -27,6 +27,7 @@ class InstallDependenciesCommand extends Command
         'scroll-area' => 'ScrollArea',
         'popover' => 'Popover',
         'select' => 'Select',
+        'button' => 'Button',
     ];
 
     private string $selectedPackageManager;

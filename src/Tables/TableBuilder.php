@@ -45,7 +45,7 @@ class TableBuilder implements TableInterface
             'filters' => $this->getFilters(),
             'actions' => $this->getActions(),
             'searchableColumns' => $this->searchable,
-            'sortableColumns' => $this->sortable,
+            'sortableColumns' => $this->getAllSortableColumns(),
             'defaultPerPage' => $this->defaultPerPage,
             'perPageOptions' => $this->perPageOptions,
         ];
@@ -96,5 +96,12 @@ class TableBuilder implements TableInterface
         $this->storeInCache($params, $result);
 
         return $result;
+    }
+
+    public function getAllSortableColumns(): array
+    {
+        return array_unique(
+            array_merge($this->sortableFields, $this->sortableColumns)
+        );
     }
 }

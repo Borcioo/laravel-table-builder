@@ -3,6 +3,7 @@
 namespace Borek\LaravelTableBuilder\Tables\Actions;
 
 use Borek\LaravelTableBuilder\Tables\Contracts\ActionInterface;
+use Illuminate\Support\Facades\Route;
 
 /**
  * Base abstract class for all table actions.
@@ -19,6 +20,13 @@ abstract class BaseAction implements ActionInterface
     protected array $config;
 
     /**
+     * Route parameters for the action.
+     * 
+     * @var array<string, mixed>
+     */
+    protected array $routeParameters = [];
+
+    /**
      * Create a new action instance.
      * 
      * @param string $name Unique identifier for the action
@@ -31,20 +39,14 @@ abstract class BaseAction implements ActionInterface
             'name' => $name,
             'label' => $label,
             'type' => 'button',
-            'href' => null,
-            'route' => null,
-            'routeParams' => [],
             'method' => 'get',
             'icon' => null,
             'variant' => 'default',
             'size' => 'default',
             'preserveScroll' => false,
             'preserveState' => false,
-            'replace' => false,
-            'only' => [],
             'confirm' => false,
             'confirmText' => 'Are you sure?',
-            'permissions' => [],
             'visible' => true,
             'disabled' => false,
         ];
@@ -52,14 +54,34 @@ abstract class BaseAction implements ActionInterface
         $this->config = array_merge($defaultConfig, $config);
     }
 
-    public function getName(): string
+    protected function actionUrl(string $route, array $parameters = []): string
     {
-        return $this->config['name'];
+        return route($route, $parameters);
+    }
+
+    public function route(string $name, array $parameters = []): self
+    {
+        $this->config['route'] = $name;
+        $this->routeParameters = $parameters;
+        return $this;
     }
 
     public function getConfig(): array
     {
-        return $this->config;
+        $config = $this->config;
+
+        if (isset($config['route'])) {
+            $config['routeName'] = $config['route'];
+            $config['routeParams'] = $this->routeParameters;
+            unset($config['route']);
+        }
+
+        return $config;
+    }
+
+    public function getName(): string
+    {
+        return $this->config['name'];
     }
 
     public static function make(string $name, string $label, array $config = []): static
